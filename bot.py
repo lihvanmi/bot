@@ -1230,6 +1230,7 @@ async def deban_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Основная функция
 def main():
+    init_db()  # Инициализация базы данных
     global banned_users
     banned_users = set()
     try:
