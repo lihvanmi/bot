@@ -59,7 +59,7 @@ last_user_username = {}  # {chat_id: username}
 last_zch_times = {}  # {chat_id: timestamp}
 last_thanks_times = {}  # {chat_id: timestamp}
 pinned_messages = {}  # {chat_id: message_id}  # Добавлено
-
+db_initialized = False  # Глобальный флаг
 # Бан-лист
 banned_users = set()
 
@@ -186,7 +186,7 @@ async def add_to_ban_history(user_id: int, username: str, reason: str):
         INSERT INTO ban_history (user_id, username, reason, timestamp)
         VALUES (%s, %s, %s, %s)
     ''', (user_id, username, reason, int(time.time())))
-    conn.commit()
+        conn.commit()
     except Exception as e:
         logger.error(f"Ошибка при добавлении в ban_history: {e}")
         conn.rollback()
@@ -218,7 +218,7 @@ async def ban_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
         FROM ban_history 
         WHERE timestamp >= %s
     ''', (int(time.time()) - days * 86400,))
-     results = cur.fetchall()
+        results = cur.fetchall()
     except Exception as e:
         logger.error(f"Ошибка при получении ban_history: {e}")
         results = []
@@ -843,7 +843,7 @@ async def auto_birthdays(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
             # Поздравляем пользователя
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"🎉{user_name} 🎊 - Поздравляю тебя с днем рождения! 🍀Желаю умножить свой cash🎁back x10 раз 🎉. _\_/_\_/_\_/_\_/_\_/_\_/_\_/_ Чтобы добавить свою дату рождения в базу, напишите команду с датой в формате /dr ДД.ММ.ГГГГ"
+                text=f"🎉{user_name} 🎊 - Поздравляю тебя с днем рождения! 🍀Желаю умножить свой cash🎁back x10 раз 🎉. ____________________________ Чтобы добавить свою дату рождения в базу, напишите команду с датой в формате /dr ДД.ММ.ГГГГ"
             )
 
             # Обновляем год последнего поздравления
@@ -1204,9 +1204,15 @@ async def deban_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 DELETE FROM ban_list WHERE user_id = %s
             ''', (user_id,))
             conn.commit()
+        except Exception as e:
+            logger.error(f"Ошибка при удалении пользователя из базы данных: {e}")
+            conn.rollback()
+        finally:
+            cur.close()
+            conn.close()
 
-            banned_users.discard(user_id)
-
+        banned_users.discard(user_id)
+        
         try:
             await context.bot.unban_chat_member(chat_id=update.message.chat.id, user_id=user_id)
         except Exception as e:
@@ -1223,16 +1229,16 @@ async def deban_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = await update.message.reply_text("Ответьте на сообщение пользователя или укажите его ID.")
         context.job_queue.run_once(delete_system_message, 10, data=response.message_id, chat_id=update.message.chat.id)
         await update.message.delete()  # Удаляем команду
-            finally:
-        # Закрываем курсор и соединение
-            cur.close()
-            conn.close()
 
 # Основная функция
 def main():
-    init_db()  # Инициализация базы данных
+    global db_initialized
+    if not db_initialized:
+        init_db()  # Инициализация базы данных
+        db_initialized = True
     global banned_users
     banned_users = set()
+
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -1240,7 +1246,6 @@ def main():
         cur.execute('SELECT user_id FROM ban_list')
         # Получаем все строки результата
         rows = cur.fetchall()
-        global banned_users
         banned_users = {row['user_id'] for row in rows}
     except Exception as e:
         logger.error(f"Ошибка при выполнении запроса: {e}")
@@ -1252,8 +1257,8 @@ def main():
 
     application = Application.builder().token(BOT_TOKEN).build()
     job_queue = application.job_queue  # Инициализация JobQueue
-        
 
+    # Добавляем обработчики команд
     application.add_handler(CommandHandler("timer", reset_pin_timer))
     application.add_handler(CommandHandler("del", delete_message))
     application.add_handler(CommandHandler("lider", lider))
@@ -1270,16 +1275,17 @@ def main():
     application.add_handler(CommandHandler("ban_history", ban_history))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    try:
-        application.run_polling()
-        logger.info("Бот запущен. Ожидание сообщений...")
-    except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
-        # Повторный запуск через 10 секунд
-        time.sleep(10)
-        main()
-    finally:
-        logger.info("Бот остановлен.")
+    # Запуск бота
+    while True:  # Используем цикл для повторного запуска
+        try:
+            application.run_polling()
+            logger.info("Бот запущен. Ожидание сообщений...")
+        except Exception as e:
+            logger.error(f"Ошибка при запуске бота: {e}")
+            # Повторный запуск через 10 секунд
+            time.sleep(10)
+        finally:
+            logger.info("Бот остановлен.")
 
 if __name__ == '__main__':
     main()
