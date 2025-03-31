@@ -1,5 +1,9 @@
-python-telegram-bot==20.3
+python-telegram-bot==20.8  # Telegram API
+requests>=2.31.0           # Для HTTP-запросов к Sber SmartSpeech
+pydub>=0.25.1              # Для работы с аудиофайлами
+ffmpeg-python>=0.2.0       # Для работы с FFmpeg
+uuid>=1.30                 # Для генерации уникальных ID
+python-telegram-bot[job-queue]
 apscheduler==3.10.1
 psycopg2-binary
 python-dotenv
-python-telegram-bot[job-queue]
