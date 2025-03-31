@@ -21,7 +21,7 @@ SALUTE_SPEECH_CLIENT_ID = "0750183c-dc6b-4a49-bc5e-7cfbdc5a93e6"
 CLIENT_SECRET = "76c46237-c157-42cd-a71a-e2523bb686fe"
 AUTHORIZATION_KEY = "MDc1MDE4M2MtZGM2Yi00YTQ5LWJjNWUtN2NmYmRjNWE5M2U2Ojc2YzQ2MjM3LWMxNTctNDJjZC1hNzFhLWUyNTIzYmI2ODZmZQ=="
 TOKEN_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
-AUDIO_CHAT_ID = -1002385047417  # ID чата для аудио
+AUDIO_CHAT_ID = -1002382138419  # ID чата для аудио
 TARGET_GROUP_ID = -1002385047417  # ID целевой группы
 
 # Список известных исполнителей
